@@ -4,6 +4,7 @@ import { Type } from "typebox";
 import Exa from "exa-js";
 import { connectToExaMcp } from "./exa_mcp_client";
 import { deepSearch, DeepSearchParams } from "./exa_deep_search";
+import { renderTruncatedResult } from "./utils";
 
 export default async function (pi: ExtensionAPI) {
   pi.registerFlag("exa-advanced", {
@@ -27,6 +28,8 @@ export default async function (pi: ExtensionAPI) {
       "Use exa_deep_search for comprehensive, multi-step research with synthesized answers, complex queries that requires breakdown and reasoning, or research focused queries. This tool is not for simple web searches.",
     ],
     parameters: DeepSearchParams,
+
+    renderResult: renderTruncatedResult,
 
     async execute(_toolCallId, params, signal, onUpdate, _ctx) {
       onUpdate?.({
@@ -75,6 +78,8 @@ export default async function (pi: ExtensionAPI) {
       label: tool.name,
       description: tool.description ?? "",
       parameters: Type.Unsafe(tool.inputSchema),
+
+      renderResult: renderTruncatedResult,
 
       async execute(toolCallId, params, signal, _onUpdate, _ctx) {
         try {
