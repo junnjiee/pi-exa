@@ -4,10 +4,24 @@ import { Type } from "typebox";
 import { connectToExaMcp } from "./exa_mcp_client";
 
 export default async function (pi: ExtensionAPI) {
+  pi.registerFlag("exa-advanced", {
+    description:
+      "Enables the advanced Exa web search tool for more granular controls (~1200 extra tokens)",
+    type: "boolean",
+    default: false,
+  });
+
   const client = await connectToExaMcp();
   const { tools } = await client.listTools();
 
   for (const tool of tools) {
+    if (
+      tool.name === "web_search_advanced_exa" &&
+      !pi.getFlag("exa-advanced")
+    ) {
+      continue;
+    }
+
     pi.registerTool({
       name: tool.name,
       label: tool.name,
@@ -82,4 +96,3 @@ export default async function (pi: ExtensionAPI) {
     await client.close();
   });
 }
-
