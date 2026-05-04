@@ -11,7 +11,9 @@ export default async function (pi: ExtensionAPI) {
       name: tool.name,
       label: tool.name,
       description: tool.description ?? "",
-      parameters: "",
+      // prefer using entire MCP schema vs building Typebox schema from MCP schema
+      // custom built schemas may result in lossy types
+      parameters: Type.Unsafe(tool.inputSchema),
 
       async execute() {
         return;
