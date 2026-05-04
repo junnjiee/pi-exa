@@ -5,8 +5,7 @@ export async function connectToExaMcp(apiKey?: string): Promise<Client> {
   const exaMcpUrl = new URL("https://mcp.exa.ai/mcp");
   exaMcpUrl.searchParams.set(
     "tools",
-    //"web_search_exa,web_search_advanced_exa,web_fetch_exa",
-    "web_fetch_exa",
+    "web_search_exa,web_search_advanced_exa,web_fetch_exa",
   );
   if (apiKey) {
     exaMcpUrl.searchParams.set("exaApiKey", apiKey);

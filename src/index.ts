@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { TextContent } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { connectToExaMcp } from "./exa_mcp_client";
 
@@ -11,35 +12,74 @@ export default async function (pi: ExtensionAPI) {
       name: tool.name,
       label: tool.name,
       description: tool.description ?? "",
-      // prefer using entire MCP schema vs building Typebox schema from MCP schema
-      // custom built schemas may result in lossy types
       parameters: Type.Unsafe(tool.inputSchema),
 
-      async execute() {
-        return;
+      async execute(toolCallId, params, signal, _onUpdate, _ctx) {
+        try {
+          const result = await client.callTool(
+            { name: tool.name, arguments: params as Record<string, unknown> },
+            undefined,
+            { signal },
+          );
+
+          const content = result.content as Array<{
+            type: string;
+            text?: string;
+          }>;
+          const text = content
+            .filter((c) => c.type === "text")
+            .map((c) => c.text)
+            .join("\n");
+
+          if (result.isError) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: text || "Tool call failed",
+                } satisfies TextContent,
+              ],
+              details: { isError: true },
+            };
+          }
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: text || "No results",
+              } satisfies TextContent,
+            ],
+            details: {},
+          };
+        } catch (err) {
+          if (signal?.aborted) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "Request was cancelled",
+                } satisfies TextContent,
+              ],
+              details: {},
+            };
+          }
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+              } satisfies TextContent,
+            ],
+            details: { isError: true },
+          };
+        }
       },
     });
   }
 
-  pi.registerTool({
-    name: "web_search",
-    label: "Web Search",
-    description:
-      "Search the web for information. Returns search results for the given query.",
-    parameters: Type.Object({
-      query: Type.String({ description: "The search query" }),
-    }),
-    async execute(toolCallId, params, signal, onUpdate, ctx) {
-      // TODO: Implement your web search logic here
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `Search results for "${params.query}" — not yet implemented.`,
-          },
-        ],
-        details: {},
-      };
-    },
+  pi.on("session_shutdown", async () => {
+    await client.close();
   });
 }
+
