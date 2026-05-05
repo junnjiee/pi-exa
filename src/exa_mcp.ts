@@ -6,6 +6,7 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const EXA_MCP_CACHE_FILE = join(getAgentDir(), "exa-mcp-cache");
+const EXA_MCP_SERVER = "https://mcp.exa.ai/mcp";
 
 let exaMcpClientPromise: Promise<Client> | undefined;
 
@@ -17,7 +18,7 @@ export function getExaMcp(apiKey?: string): Promise<Client> {
     // this variable only stores the result of execution, as the async function
     // is ran immediately
     const clientPromise = (async () => {
-      const exaMcpUrl = new URL("https://mcp.exa.ai/mcp");
+      const exaMcpUrl = new URL(EXA_MCP_SERVER);
       exaMcpUrl.searchParams.set(
         "tools",
         "web_search_exa,web_search_advanced_exa,web_fetch_exa",
@@ -60,6 +61,7 @@ export async function closeExaMcp() {
   await client.close();
 }
 
+// NOTE: no error handling for when there's no cache data and MCP server is down
 export async function getExaMcpTools(apiKey?: string): Promise<Tool[]> {
   try {
     await access(EXA_MCP_CACHE_FILE);

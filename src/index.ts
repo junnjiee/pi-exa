@@ -110,7 +110,7 @@ export default async function (pi: ExtensionAPI) {
     },
   });
 
-  // load Exa search MCP tools
+  // load Exa MCP tools
   const tools = await getExaMcpTools(exaApiKey);
 
   for (const tool of tools) {
