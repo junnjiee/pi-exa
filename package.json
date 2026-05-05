@@ -1,8 +1,20 @@
 {
   "name": "pi-exa",
-  "private": true,
   "version": "0.1.0",
+  "description": "Web search, fetch and deep research tools powered by Exa, for Pi Agent.",
   "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-exa",
+    "web-search",
+    "deep-search",
+    "neural-search",
+    "exa"
+  ],
+  "files": [
+    "src"
+  ],
   "scripts": {
     "clean": "rm -rf node_modules",
     "build": "echo 'nothing to build (pi uses jiti)'",
@@ -18,8 +30,16 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "exa-js": "^2.12.1"
   },
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "typebox": "*"
+  },
   "devDependencies": {
+    "@mariozechner/pi-ai": "^0.72.1",
     "@mariozechner/pi-coding-agent": "latest",
+    "@mariozechner/pi-tui": "^0.72.1",
     "tsx": "^4.21.0",
     "typebox": "latest",
     "typescript": "^5.7.0"
