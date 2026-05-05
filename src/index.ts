@@ -30,7 +30,7 @@ export default async function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     if (!mcpToolsLoaded) {
       ctx.ui.notify(
-        "Exa MCP tools were not registered as the MCP server was unavailable.",
+        "Exa MCP tools were not registered as the MCP server was unavailable. /reload to try again.",
         "warning",
       );
     }
@@ -114,6 +114,56 @@ export default async function (pi: ExtensionAPI) {
       "Enables the advanced Exa web search tool for more granular controls (~1200 extra tokens)",
     type: "boolean",
     default: false,
+  });
+
+  pi.registerTool({
+    name: "enable_web_search_advanced_exa",
+    label: "enable_web_search_advanced_exa",
+    description:
+      "Enable the advanced Exa web search tool for granular filters when simple search is insufficient user's query.",
+    promptSnippet:
+      "Enables Exa web search with all the filters for the next turn",
+    promptGuidelines: [
+      "Call this tool only when simple search is insufficient and you need to use many advanced filters such as category, web domain name inclusion/exclusion, published date range, location based results, additional guiding prompts",
+    ],
+    parameters: Type.Object({
+      reason: Type.String({
+        description: "Why advanced Exa search is needed",
+      }),
+    }),
+
+    async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
+      const advancedTool = pi
+        .getAllTools()
+        .find((tool) => tool.name === "web_search_advanced_exa");
+
+      if (!advancedTool) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "web_search_advanced_exa is not available. Use web_search_exa instead.",
+            },
+          ],
+          details: { available: false },
+        };
+      }
+
+      const activeTools = pi.getActiveTools();
+      if (!activeTools.includes("web_search_advanced_exa")) {
+        pi.setActiveTools([...activeTools, "web_search_advanced_exa"]);
+      }
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: "web_search_advanced_exa is now enabled. On the next turn, call web_search_advanced_exa with the needed advanced filters.",
+          },
+        ],
+        details: { available: true },
+      };
+    },
   });
 
   pi.registerTool({
