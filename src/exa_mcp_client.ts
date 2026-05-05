@@ -14,7 +14,7 @@ export async function connectToExaMcp(apiKey?: string): Promise<Client> {
   const transport = new StreamableHTTPClientTransport(exaMcpUrl);
 
   const client = new Client(
-    { name: "pi-web-search", version: "0.1.0" },
+    { name: "pi-exa", version: "0.1.0" },
     { capabilities: {} },
   );
 

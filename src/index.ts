@@ -73,7 +73,7 @@ export default async function (pi: ExtensionAPI) {
       "Perform deep web search using Exa. Supports deep-lite (fast), deep (balanced), and deep-reasoning (thorough) search modes.",
     promptSnippet: "Deep web search for thorough research queries",
     promptGuidelines: [
-      "Use exa_deep_search for comprehensive, multi-step research with synthesized answers, complex queries that requires breakdown and reasoning, or research focused queries. This tool is not for simple web searches.",
+      "Use exa_deep_search for comprehensive multi-step research, complex queries that require breakdown and reasoning, or when the user instructs you to. This tool is not for simple web searches. Recommend user that you should run web_search_exa if API key doesn't exist",
     ],
     parameters: DeepSearchParams,
 
@@ -84,7 +84,7 @@ export default async function (pi: ExtensionAPI) {
         content: [
           {
             type: "text",
-            text: `Performing Exa Deep Search...`,
+            text: `Performing Exa Deep Search: ${params.query}`,
           },
         ],
         details: {},
