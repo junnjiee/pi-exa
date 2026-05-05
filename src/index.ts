@@ -24,7 +24,6 @@ export default async function (pi: ExtensionAPI) {
     if (pi.getFlag("exa-advanced")) {
       return;
     }
-
     const activeTools = pi.getActiveTools();
     pi.setActiveTools(
       activeTools.filter((name) => name !== "web_search_advanced_exa"),
