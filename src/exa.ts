@@ -2,6 +2,10 @@ import Exa from "exa-js";
 
 let exa: Exa | undefined;
 
+export function resetExa() {
+  exa = undefined;
+}
+
 // singleton for Exa API interface
 export function getExa(apiKey: string | undefined) {
   if (!apiKey) {

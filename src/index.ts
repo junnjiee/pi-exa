@@ -1,13 +1,20 @@
 import { AuthStorage, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "typebox";
-import { getExa } from "./exa";
+import { getExa, resetExa } from "./exa";
 import { closeExaMcp, getExaMcp, getExaMcpTools } from "./exa_mcp";
 import { deepSearch, DeepSearchParams } from "./exa_deep_search";
 import { abortPromise, renderTruncatedResult } from "./utils";
+import { getPiExaConfig, setPiExaConfig } from "./config";
 
 const EXA_PROVIDER = "exa";
 
-export function getExaApiKey(): string | undefined {
+export async function getExaApiKey(mcp = false) {
+  if (mcp) {
+    const config = await getPiExaConfig();
+    if (!config.mcpUseApiKey) {
+      return;
+    }
+  }
   const authStorage = AuthStorage.create();
   const cred = authStorage.get(EXA_PROVIDER);
   if (cred?.type === "api_key" && cred.key) {
@@ -18,7 +25,6 @@ export function getExaApiKey(): string | undefined {
 
 export default async function (pi: ExtensionAPI) {
   const authStorage = AuthStorage.create();
-  const exaApiKey = getExaApiKey();
 
   pi.on("session_start", async () => {
     if (pi.getFlag("exa-advanced")) {
@@ -43,7 +49,9 @@ export default async function (pi: ExtensionAPI) {
       const key = await ctx.ui.input("Exa API Key", "Enter your Exa API key");
       if (key) {
         authStorage.set(EXA_PROVIDER, { type: "api_key", key });
-        ctx.ui.notify("Exa API key saved, /reload to take effect.", "info");
+        resetExa();
+        await closeExaMcp();
+        ctx.ui.notify("Exa API key saved.", "info");
       }
     },
   });
@@ -52,7 +60,44 @@ export default async function (pi: ExtensionAPI) {
     description: "Remove your Exa API key",
     handler: async (_args, ctx) => {
       authStorage.remove(EXA_PROVIDER);
-      ctx.ui.notify("Exa API key removed. /reload to take effect", "info");
+      resetExa();
+      await closeExaMcp();
+      ctx.ui.notify(
+        process.env.EXA_API_KEY
+          ? "Stored Exa API key removed. EXA_API_KEY env var is still set and will be used."
+          : "Exa API key removed.",
+        "info",
+      );
+    },
+  });
+
+  pi.registerCommand("exa-mcp-use-api-key", {
+    description: "Enable/disable using your Exa API key for the Exa MCP server",
+    handler: async (args, ctx) => {
+      const value = args.trim().toLowerCase();
+
+      if (!value) {
+        const config = await getPiExaConfig();
+        ctx.ui.notify(
+          `API key for Exa MCP Server is currently ${config.mcpUseApiKey ? "enabled" : "disabled"}. Use /exa-mcp-use-api-key on|off to toggle.`,
+          "info",
+        );
+        return;
+      }
+
+      if (value !== "on" && value !== "off") {
+        ctx.ui.notify("Usage: /exa-mcp-use-api-key on|off", "info");
+        return;
+      }
+
+      const enabled = value === "on";
+      await setPiExaConfig({ mcpUseApiKey: enabled });
+      await closeExaMcp();
+
+      ctx.ui.notify(
+        `${enabled ? "Enabled" : "Disabled"} using API key for Exa MCP server`,
+        "info",
+      );
     },
   });
 
@@ -91,7 +136,7 @@ export default async function (pi: ExtensionAPI) {
       // but the request will still run to completion, just ignored
       try {
         const result = await Promise.race([
-          deepSearch(getExa(exaApiKey), {
+          deepSearch(getExa(await getExaApiKey()), {
             query: params.query,
             numResults: params.numResults,
             type: params.type,
@@ -118,7 +163,7 @@ export default async function (pi: ExtensionAPI) {
   });
 
   // load Exa MCP tools
-  const tools = await getExaMcpTools(exaApiKey);
+  const tools = await getExaMcpTools(await getExaApiKey(true));
 
   for (const tool of tools) {
     pi.registerTool({
@@ -131,7 +176,7 @@ export default async function (pi: ExtensionAPI) {
 
       async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
         try {
-          const mcpClient = await getExaMcp(exaApiKey);
+          const mcpClient = await getExaMcp(await getExaApiKey(true));
           const result = await mcpClient.callTool(
             { name: tool.name, arguments: params as Record<string, unknown> },
             undefined,
