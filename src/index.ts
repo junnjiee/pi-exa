@@ -1,7 +1,7 @@
 import { AuthStorage, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "typebox";
 import { getExa } from "./exa";
-import { connectToExaMcp } from "./exa_mcp_client";
+import { closeExaMcp, getExaMcp, getExaMcpTools } from "./exa_mcp";
 import { deepSearch, DeepSearchParams } from "./exa_deep_search";
 import { renderTruncatedResult } from "./utils";
 
@@ -19,8 +19,7 @@ export function getExaApiKey(): string | undefined {
 export default async function (pi: ExtensionAPI) {
   const authStorage = AuthStorage.create();
   const exaApiKey = getExaApiKey();
-  const client = await connectToExaMcp(exaApiKey);
-  const { tools } = await client.listTools();
+  const tools = await getExaMcpTools(exaApiKey);
 
   pi.registerCommand("exa-login", {
     description: "Set your Exa API key",
@@ -35,7 +34,10 @@ export default async function (pi: ExtensionAPI) {
       const key = await ctx.ui.input("Exa API Key", "Enter your Exa API key");
       if (key) {
         authStorage.set(EXA_PROVIDER, { type: "api_key", key });
-        ctx.ui.notify("Exa API key saved to ~/.pi/agent/auth.json", "info");
+        ctx.ui.notify(
+          "Exa API key saved. If you are replacing the API key, /reload for it to take effect.",
+          "info",
+        );
       }
     },
   });
@@ -124,6 +126,7 @@ export default async function (pi: ExtensionAPI) {
 
       async execute(toolCallId, params, signal, _onUpdate, _ctx) {
         try {
+          const client = await getExaMcp(exaApiKey);
           const result = await client.callTool(
             { name: tool.name, arguments: params as Record<string, unknown> },
             undefined,
@@ -187,6 +190,6 @@ export default async function (pi: ExtensionAPI) {
   }
 
   pi.on("session_shutdown", async () => {
-    await client.close();
+    await closeExaMcp();
   });
 }
