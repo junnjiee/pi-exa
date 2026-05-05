@@ -88,6 +88,8 @@ export default async function (pi: ExtensionAPI) {
         details: {},
       });
 
+      // NOTE: abort will free up the deepSearch() call from blocking Pi,
+      // but the request will still run to completion, just ignored
       try {
         const result = await Promise.race([
           deepSearch(getExa(exaApiKey), {
