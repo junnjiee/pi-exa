@@ -2,6 +2,16 @@
   "name": "pi-exa",
   "version": "0.1.0",
   "description": "Web search, fetch and deep research tools powered by Exa, for Pi Agent.",
+  "author": "junnjiee",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/junnjiee/pi-exa.git"
+  },
+  "bugs": {
+    "url": "https://github.com/junnjiee/pi-exa/issues"
+  },
+  "homepage": "https://github.com/junnjiee/pi-exa#readme",
   "type": "module",
   "keywords": [
     "pi-package",

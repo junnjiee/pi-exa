@@ -120,7 +120,7 @@ export default async function (pi: ExtensionAPI) {
     name: "enable_web_search_advanced_exa",
     label: "enable_web_search_advanced_exa",
     description:
-      "Enable the advanced Exa web search tool when you need multiple filters to narrow search results.",
+      "Enable the advanced Exa web search tool when you need filters to change your search mode, or get narrowed results",
     promptSnippet: "Enables Exa web search with all advanced filters",
     promptGuidelines: [
       "Use enable_web_search_advanced_exa if the user's query has multiple search constraints. This includes, but not limited to: category, domains/website inclusions or exclusions, published date ranges, location constraints. If you can use 2 or more filters, call enable_web_search_advanced_exa. Prefer advanced search when correctness depends on narrowing results with specific filters rather than finding general information.",
