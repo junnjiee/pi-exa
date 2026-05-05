@@ -19,7 +19,17 @@ export function getExaApiKey(): string | undefined {
 export default async function (pi: ExtensionAPI) {
   const authStorage = AuthStorage.create();
   const exaApiKey = getExaApiKey();
-  const tools = await getExaMcpTools(exaApiKey);
+
+  pi.on("session_start", async () => {
+    if (pi.getFlag("exa-advanced")) {
+      return;
+    }
+
+    const activeTools = pi.getActiveTools();
+    pi.setActiveTools(
+      activeTools.filter((name) => name !== "web_search_advanced_exa"),
+    );
+  });
 
   pi.registerCommand("exa-login", {
     description: "Set your Exa API key",
@@ -34,10 +44,7 @@ export default async function (pi: ExtensionAPI) {
       const key = await ctx.ui.input("Exa API Key", "Enter your Exa API key");
       if (key) {
         authStorage.set(EXA_PROVIDER, { type: "api_key", key });
-        ctx.ui.notify(
-          "Exa API key saved. If you are replacing the API key, /reload for it to take effect.",
-          "info",
-        );
+        ctx.ui.notify("Exa API key saved, /reload to take effect.", "info");
       }
     },
   });
@@ -46,7 +53,7 @@ export default async function (pi: ExtensionAPI) {
     description: "Remove your Exa API key",
     handler: async (_args, ctx) => {
       authStorage.remove(EXA_PROVIDER);
-      ctx.ui.notify("Exa API key removed", "info");
+      ctx.ui.notify("Exa API key removed. /reload to take effect", "info");
     },
   });
 
@@ -57,17 +64,6 @@ export default async function (pi: ExtensionAPI) {
     default: false,
   });
 
-  pi.on("session_start", async () => {
-    if (pi.getFlag("exa-advanced")) {
-      return;
-    }
-
-    const activeTools = pi.getActiveTools();
-    pi.setActiveTools(
-      activeTools.filter((name) => name !== "web_search_advanced_exa"),
-    );
-  });
-
   pi.registerTool({
     name: "deep_search_exa",
     label: "deep_search_exa",
@@ -75,7 +71,7 @@ export default async function (pi: ExtensionAPI) {
       "Perform deep web search using Exa. Supports deep-lite (fast), deep (balanced), and deep-reasoning (thorough) search modes.",
     promptSnippet: "Deep web search for thorough research queries",
     promptGuidelines: [
-      "Use exa_deep_search for comprehensive multi-step research, complex queries that require breakdown and reasoning, or when the user instructs you to. This tool is not for simple web searches. Recommend user that you should run web_search_exa if API key doesn't exist",
+      "Use deep_search_exa for comprehensive multi-step research, complex queries that require breakdown and reasoning, or when the user instructs you to. This tool is not for simple web searches. Recommend user that you should run web_search_exa if API key doesn't exist",
     ],
     parameters: DeepSearchParams,
 
@@ -115,6 +111,8 @@ export default async function (pi: ExtensionAPI) {
   });
 
   // load Exa search MCP tools
+  const tools = await getExaMcpTools(exaApiKey);
+
   for (const tool of tools) {
     pi.registerTool({
       name: tool.name,
