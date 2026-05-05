@@ -1,7 +1,7 @@
 {
   "name": "pi-exa",
-  "version": "0.1.1",
-  "description": "Web search, fetch and deep research tools powered by Exa, for Pi Agent.",
+  "version": "0.1.2",
+  "description": "Web search, deep research and fetch content tools for Pi Agent, powered by Exa.",
   "author": "junnjiee",
   "license": "MIT",
   "repository": {
