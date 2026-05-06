@@ -149,60 +149,64 @@ export default async function (pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("exa-advanced-search", {
+    description: "Enable/disable the advanced Exa web search tool",
+    handler: async (args, ctx) => {
+      const value = args.trim().toLowerCase();
+      const activeTools = pi.getActiveTools();
+      const isEnabled = activeTools.includes("web_search_advanced_exa");
+
+      if (!value) {
+        ctx.ui.notify(
+          `Advanced Exa web search is currently ${isEnabled ? "enabled" : "disabled"}. Use /exa-advanced-search on|off to toggle.`,
+          "info",
+        );
+        return;
+      }
+
+      if (value !== "on" && value !== "off") {
+        ctx.ui.notify("Usage: /exa-advanced-search on|off", "info");
+        return;
+      }
+
+      if (value === "on") {
+        const advancedTool = pi
+          .getAllTools()
+          .find((tool) => tool.name === "web_search_advanced_exa");
+
+        if (!advancedTool) {
+          ctx.ui.notify(
+            "web_search_advanced_exa is not available. /reload to try registering Exa MCP tools again.",
+            "warning",
+          );
+          return;
+        }
+
+        pi.setActiveTools([
+          ...new Set([...activeTools, "web_search_advanced_exa"]),
+        ]);
+        ctx.ui.notify(
+          "Enabled web_search_advanced_exa. The agent will see it on the next turn.",
+          "info",
+        );
+        return;
+      }
+
+      pi.setActiveTools(
+        activeTools.filter((name) => name !== "web_search_advanced_exa"),
+      );
+      ctx.ui.notify(
+        "Disabled web_search_advanced_exa. The agent will stop seeing it on the next turn.",
+        "info",
+      );
+    },
+  });
+
   pi.registerFlag("exa-advanced", {
     description:
       "Enables the advanced Exa web search tool for more granular controls (~1200 extra tokens)",
     type: "boolean",
     default: false,
-  });
-
-  pi.registerTool({
-    name: "enable_web_search_advanced_exa",
-    label: "enable_web_search_advanced_exa",
-    description:
-      "Enable the advanced Exa web search tool when you need filters to change your search mode, or get narrowed results",
-    promptSnippet: "Enables Exa web search with all advanced filters",
-    promptGuidelines: [
-      "Use enable_web_search_advanced_exa if the user's query has multiple search constraints. This includes, but not limited to: category, domains/website inclusions or exclusions, published date ranges, location constraints. If you can use 2 or more filters, call enable_web_search_advanced_exa. Prefer advanced search when correctness depends on narrowing results with specific filters rather than finding general information.",
-    ],
-    parameters: Type.Object({
-      reason: Type.String({
-        description: "Why advanced Exa search is needed",
-      }),
-    }),
-
-    async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
-      const advancedTool = pi
-        .getAllTools()
-        .find((tool) => tool.name === "web_search_advanced_exa");
-
-      if (!advancedTool) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: "web_search_advanced_exa is not available. Use web_search_exa instead.",
-            },
-          ],
-          details: { available: false },
-        };
-      }
-
-      const activeTools = pi.getActiveTools();
-      if (!activeTools.includes("web_search_advanced_exa")) {
-        pi.setActiveTools([...activeTools, "web_search_advanced_exa"]);
-      }
-
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: "web_search_advanced_exa is now enabled. Continue your loop and call web_search_advanced_exa with the necessary filters.",
-          },
-        ],
-        details: { available: true },
-      };
-    },
   });
 
   pi.registerTool({

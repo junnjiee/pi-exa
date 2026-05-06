@@ -36,7 +36,7 @@ pi /exa-login
 
 - Let your agent use every Exa search filter
 - Disabled by default to save context (~1200 tokens)
-- Agent-enabled advanced search via `enable_web_search_advanced_exa`, or manual opt-in with `--exa-advanced`
+- Enable for the session with `/exa-advanced-search on` or at startup with `--exa-advanced`
 
 ### Deep Search
 
@@ -46,23 +46,23 @@ pi /exa-login
 
 ### Commands
 
-| command                | description                                                                                                                       |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `/exa-login`           | Writes your Exa API key to `.pi/agents/auth.json`                                                                                 |
-| `/exa-logout`          | Removes your API key from `.pi/agents/auth.json`                                                                                  |
-| `/exa-status`          | Shows the Pi Exa extension status                                                                                                 |
-| `/exa-mcp-use-api-key` | Uses your API key when calling Exa MCP server. You will be billed. Only use when you've reached your rate limit for free requests |
+| command                | description                                                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/exa-login`           | Writes your Exa API key to `.pi/agents/auth.json`                                                                                                                              |
+| `/exa-logout`          | Removes your API key from `.pi/agents/auth.json`                                                                                                                               |
+| `/exa-status`          | Shows the Pi Exa extension status                                                                                                                                              |
+| `/exa-advanced-search` | Enables/disables the advanced Exa web search tool with `/exa-advanced-search on/off`                                                                                           |
+| `/exa-mcp-use-api-key` | Enables/disables use of your API key for Exa MCP server with `/exa-mcp-use-api-key on/off`. You will be billed. Only use when you've reached your rate limit for free requests |
 
 ### Tools
 
 Enabled by default:
 
-| name                             | interface                                                 | description                                                                         |
-| -------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `web_search_exa`                 | [Exa MCP](https://github.com/exa-labs/exa-mcp-server)     | Use for general web search                                                          |
-| `web_fetch_exa`                  | [Exa MCP](https://github.com/exa-labs/exa-mcp-server)     | Get content of a specific webpage                                                   |
-| `deep_search_exa`                | [Exa API](https://exa.ai/docs/reference/search-api-guide) | Use for multi-step research or when answer requires synthesis from multiple sources |
-| `enable_web_search_advanced_exa` | None                                                      | Allows Pi agent to enable web_search_advanced_exa                                   |
+| name              | interface                                                 | description                                                                         |
+| ----------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `web_search_exa`  | [Exa MCP](https://github.com/exa-labs/exa-mcp-server)     | Use for general web search                                                          |
+| `web_fetch_exa`   | [Exa MCP](https://github.com/exa-labs/exa-mcp-server)     | Get content of a specific webpage                                                   |
+| `deep_search_exa` | [Exa API](https://exa.ai/docs/reference/search-api-guide) | Use for multi-step research or when answer requires synthesis from multiple sources |
 
 Disabled by default:
 
