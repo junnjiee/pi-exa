@@ -4,7 +4,7 @@ Web search, fetching, and deep research for your Pi Agent. Powered by [Exa](http
 
 **No API key needed** for web search and fetch. Works out of the box, install the extension and your agent can start using Exa search and fetch.
 
-https://github.com/user-attachments/assets/3059fafa-04a1-4916-85fb-13cbe3d90347
+https://github.com/user-attachments/assets/8bc51126-f212-4ad7-813b-705197a972e8
 
 ## Why Exa for your Agent
 
