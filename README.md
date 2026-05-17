@@ -1,5 +1,9 @@
 # Pi Exa
 
+<video src="./assets/demo.mp4" controls width="100%"></video>
+
+[Watch the demo video](./assets/demo.mp4)
+
 Web search, fetching, and deep research for your Pi Agent. Powered by [Exa](https://exa.ai).
 
 **No API key needed** for web search and fetch. Works out of the box, install the extension and your agent can start using Exa search and fetch.
