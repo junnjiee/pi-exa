@@ -146,14 +146,20 @@ export default async function (pi: ExtensionAPI) {
       })();
 
       const lines = [
-        "Exa status:",
-        `- Stored API key: ${hasStoredKey ? "yes" : "no"}`,
-        `- EXA_API_KEY env var: ${hasEnvKey ? "yes" : "no"}`,
+        "pi-exa status:",
+        "",
+        "API Key Management",
+        `- Stored API key: ${hasStoredKey ? "found" : "not found"}`,
+        `- EXA_API_KEY env var: ${hasEnvKey ? "found" : "not found"}`,
         `- MCP uses API key: ${config.mcpUseApiKey ? "yes" : "no"}`,
-        `- deep_search_exa enabled: ${deepSearchEnabled ? "yes" : "no"}`,
-        `- web_search_advanced_exa enabled: ${advancedSearchEnabled ? "yes" : "no"}`,
-        `- Exa MCP tools registered: ${mcpToolsLoaded ? "yes" : "no"}`,
-        `- MCP live check: ${mcpHealthy ? "healthy" : "failed"}`,
+        "",
+        "Exa MCP",
+        `- MCP tools registered: ${mcpToolsLoaded ? "yes" : "no"}`,
+        `- MCP live check: ${mcpHealthy ? "success" : "failed"}`,
+        "",
+        "Tool Management",
+        `- deep_search_exa: ${deepSearchEnabled ? "enabled" : "disabled"}`,
+        `- web_search_advanced_exa: ${advancedSearchEnabled ? "enabled" : "disabled"}`,
       ];
       ctx.ui.notify(lines.join("\n"), "info");
     },
