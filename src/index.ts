@@ -11,24 +11,23 @@ import { getPiExaConfig, setPiExaConfig } from "./config";
 
 const EXA_PROVIDER = "exa";
 
-export async function getExaApiKey(mcp = false) {
-  if (mcp) {
-    const config = await getPiExaConfig();
-    if (!config.mcpUseApiKey) {
-      return;
-    }
-  }
-  const authStorage = AuthStorage.create();
-  const cred = authStorage.get(EXA_PROVIDER);
-  if (cred?.type === "api_key" && cred.key) {
-    return cred.key;
-  }
-  return process.env.EXA_API_KEY;
-}
-
 export default async function (pi: ExtensionAPI) {
   const authStorage = AuthStorage.create();
   let mcpToolsLoaded = false;
+
+  async function getExaApiKey(mcp = false) {
+    if (mcp) {
+      const config = await getPiExaConfig();
+      if (!config.mcpUseApiKey) {
+        return;
+      }
+    }
+    const cred = authStorage.get(EXA_PROVIDER);
+    if (cred?.type === "api_key" && cred.key) {
+      return cred.key;
+    }
+    return process.env.EXA_API_KEY;
+  }
 
   async function updateDeepSearchToolAvailability() {
     const config = await getPiExaConfig();
