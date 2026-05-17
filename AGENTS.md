@@ -45,7 +45,11 @@ When your changes create orphans:
 
 The test: Every changed line should trace directly to the user's request.
 
-## 4. Goal-Driven Execution
+## 4. Source of Truth for Status
+
+When showing whether something is available, enabled, disabled, registered, active, or healthy, always read from the runtime source of truth for that claim. Do not report persisted config as current availability unless config is itself the source of truth. If config is only a preference used to restore state, label it as configured/preferred, not currently enabled.
+
+## 5. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**
 
