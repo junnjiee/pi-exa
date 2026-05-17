@@ -6,6 +6,7 @@ const PI_EXA_CONFIG_FILE = join(getAgentDir(), "pi-exa.json");
 
 export interface PiExaConfig {
   mcpUseApiKey?: boolean;
+  deepSearchEnabled?: boolean;
 }
 
 export async function getPiExaConfig(): Promise<PiExaConfig> {

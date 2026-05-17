@@ -41,6 +41,8 @@ pi /exa-login
 ### Deep Search
 
 - Give your agent access to Deep Search via the Exa API, with `deep-lite`, `deep`, and `deep-reasoning` modes
+- Requires an Exa API key via `EXA_API_KEY` or `/exa-login`
+- Enable or disable with `/exa-deep-search on|off`
 
 ## Docs
 
@@ -52,6 +54,7 @@ pi /exa-login
 | `/exa-logout`          | Removes your API key from `.pi/agents/auth.json`                                                                                                                               |
 | `/exa-status`          | Shows the Pi Exa extension status                                                                                                                                              |
 | `/exa-advanced-search` | Enables/disables the advanced Exa web search tool with `/exa-advanced-search on/off`                                                                                           |
+| `/exa-deep-search`     | Enables/disables the Exa deep search tool with `/exa-deep-search on/off`. Requires an Exa API key                                                                              |
 | `/exa-mcp-use-api-key` | Enables/disables use of your API key for Exa MCP server with `/exa-mcp-use-api-key on/off`. You will be billed. Only use when you've reached your rate limit for free requests |
 
 ### Tools
@@ -62,7 +65,7 @@ Enabled by default:
 | ----------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `web_search_exa`  | [Exa MCP](https://github.com/exa-labs/exa-mcp-server)     | Use for general web search                                                          |
 | `web_fetch_exa`   | [Exa MCP](https://github.com/exa-labs/exa-mcp-server)     | Get content of a specific webpage                                                   |
-| `deep_search_exa` | [Exa API](https://exa.ai/docs/reference/search-api-guide) | Use for multi-step research or when answer requires synthesis from multiple sources |
+| `deep_search_exa` | [Exa API](https://exa.ai/docs/reference/search-api-guide) | Use for multi-step research or when answer requires synthesis from multiple sources. Disabled automatically when no Exa API key is available |
 
 Disabled by default:
 
