@@ -36,3 +36,18 @@ export function renderTruncatedResult(
   const hint = `... ${lines.length - PREVIEW_LINES} more lines, (${keyHint("app.tools.expand", "to expand")})`;
   return new Text(`${preview}\n${theme.fg("muted", hint)}`, 0, 0);
 }
+
+export function renderCall(
+  toolName: string,
+): (args: unknown, theme: Theme) => Component {
+  return (args, theme) => {
+    const { query, urls } = (args ?? {}) as { query?: string; urls?: string[] };
+    const display = query ? `"${query}"` : urls ? `\n${urls.join("\n")}` : "";
+    return new Text(
+      theme.fg("toolTitle", theme.bold(`${toolName} `)) +
+        theme.fg("muted", display),
+      0,
+      0,
+    );
+  };
+}

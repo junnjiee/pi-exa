@@ -7,7 +7,7 @@ import { Type } from "typebox";
 import { getExa, resetExa } from "./exa";
 import { closeExaMcp, getExaMcp, getExaMcpTools } from "./exa_mcp";
 import { deepSearch, DeepSearchParams } from "./exa_deep_search";
-import { abortPromise, renderTruncatedResult } from "./utils";
+import { abortPromise, renderCall, renderTruncatedResult } from "./utils";
 import { getPiExaConfig, setPiExaConfig } from "./config";
 
 const EXA_PROVIDER = "exa";
@@ -322,6 +322,7 @@ export default async function (pi: ExtensionAPI) {
     ],
     parameters: DeepSearchParams,
 
+    renderCall: renderCall("deep_search_exa"),
     renderResult: renderTruncatedResult,
 
     async execute(_toolCallId, params, signal, onUpdate, _ctx) {
@@ -376,6 +377,7 @@ export default async function (pi: ExtensionAPI) {
       description: tool.description ?? "",
       parameters: Type.Unsafe(tool.inputSchema),
 
+      renderCall: renderCall(tool.name),
       renderResult: renderTruncatedResult,
 
       async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
