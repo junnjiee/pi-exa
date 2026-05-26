@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tavily/core": "^0.6.1",
     "exa-js": "^2.12.1"
   },
   "peerDependencies": {
