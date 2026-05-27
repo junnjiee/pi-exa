@@ -318,7 +318,7 @@ export default async function (pi: ExtensionAPI) {
       "Perform deep web search using Exa. Supports deep-lite (fast), deep (balanced), and deep-reasoning (thorough) search modes.",
     promptSnippet: "Deep web search for thorough research queries",
     promptGuidelines: [
-      "Use deep_search_exa for comprehensive multi-step research, complex queries that require breakdown and reasoning, or when the user instructs you to. This tool is not for simple web searches. Recommend user that you should run web_search_exa if API key doesn't exist",
+      "Use deep_search_exa for comprehensive multi-step research, complex queries that require breakdown and reasoning, or when the user instructs you to. This tool is not for simple web searches.",
     ],
     parameters: DeepSearchParams,
 

@@ -87,6 +87,8 @@ export async function getExaMcpTools(apiKey?: string): Promise<Tool[]> {
     await writeFile(EXA_MCP_CACHE_FILE, JSON.stringify(tools, null, 2));
     return tools;
   } catch {
+    // in the case where it's a cold start and MCP fails, we return a
+    // empty tool schema. this error should be handled on registration time
     if (cachedTools) {
       return cachedTools;
     }
