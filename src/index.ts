@@ -325,17 +325,7 @@ export default async function (pi: ExtensionAPI) {
     renderCall: renderCall("deep_search_exa"),
     renderResult: renderTruncatedResult,
 
-    async execute(_toolCallId, params, signal, onUpdate, _ctx) {
-      onUpdate?.({
-        content: [
-          {
-            type: "text",
-            text: `Performing Exa Deep Search: ${params.query}`,
-          },
-        ],
-        details: {},
-      });
-
+    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
       // NOTE: abort will free up the deepSearch() call from blocking Pi,
       // but the request will still run to completion, just ignored
       try {
