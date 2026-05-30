@@ -2,8 +2,6 @@ import { keyHint, Theme } from "@earendil-works/pi-coding-agent";
 import type { Component } from "@earendil-works/pi-tui";
 import { Text } from "@earendil-works/pi-tui";
 
-const PREVIEW_LINES = 3;
-
 export function abortPromise(signal?: AbortSignal): Promise<never> {
   if (!signal) return new Promise(() => {});
   if (signal.aborted) return Promise.reject(new Error("Request was cancelled"));
@@ -30,11 +28,9 @@ export function renderTruncatedResult(
   if (expanded) return new Text(text, 0, 0);
 
   const lines = text.split("\n");
-  if (lines.length <= PREVIEW_LINES) return new Text(text, 0, 0);
-
-  const preview = lines.slice(0, PREVIEW_LINES).join("\n");
-  const hint = `... ${lines.length - PREVIEW_LINES} more lines, (${keyHint("app.tools.expand", "to expand")})`;
-  return new Text(`${preview}\n${theme.fg("muted", hint)}`, 0, 0);
+  const lineWord = lines.length === 1 ? "line" : "lines";
+  const hint = `(${lines.length} ${lineWord}, ${keyHint("app.tools.expand", "to expand")})`;
+  return new Text(theme.fg("muted", hint), 0, 0);
 }
 
 export function renderCall(
