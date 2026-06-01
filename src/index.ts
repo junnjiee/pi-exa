@@ -315,10 +315,11 @@ export default async function (pi: ExtensionAPI) {
     name: "deep_search_exa",
     label: "deep_search_exa",
     description:
-      "Perform deep web search using Exa. Supports deep-lite (fast), deep (balanced), and deep-reasoning (thorough) search modes.",
-    promptSnippet: "Deep web search for thorough research queries",
+      "Deep web search for complex questions that require in-depth research, reasoning or multi-source synthesis with citations. Best for nuanced or complex queries that cannot be resolved with a simple web search. You are strongly encouraged to create additional queries for query variations if the query has adjacent names, terminology or angles. Additional queries also help with better coverage. Main and additional queries are ran in parallel.",
+    promptSnippet:
+      "Agentic web search for complex research, parallel search, and multi-source synthesis",
     promptGuidelines: [
-      "Use deep_search_exa for comprehensive multi-step research, complex queries that require breakdown and reasoning, or when the user instructs you to. This tool is not for simple web searches.",
+      "Use deep_search_exa for research that needs reasoning and multi-source synthesis, or for search queries that goes beyond a factual look up.",
     ],
     parameters: DeepSearchParams,
 
@@ -335,6 +336,7 @@ export default async function (pi: ExtensionAPI) {
             numResults: params.numResults,
             type: params.type,
             category: params.category,
+            additionalQueries: params.additionalQueries,
           }),
           abortPromise(signal),
         ]);
@@ -360,11 +362,32 @@ export default async function (pi: ExtensionAPI) {
   const tools = await getExaMcpTools(await getExaApiKey(true));
   mcpToolsLoaded = tools.length > 0;
 
+  const mcpPromptMetadata: Record<
+    string,
+    { promptSnippet: string; promptGuidelines: string[] }
+  > = {
+    web_search_exa: {
+      promptSnippet:
+        "Search the web for current information and return clean result content",
+      promptGuidelines: [
+        "Use web_search_exa for simple web searches, current information, news, facts, people, companies, or answering questions about any topic.",
+      ],
+    },
+    web_fetch_exa: {
+      promptSnippet:
+        "Fetch full clean markdown content from known webpage URLs",
+      promptGuidelines: [
+        "Use web_fetch_exa to read full clean markdown content from known webpage URLs.",
+      ],
+    },
+  };
+
   for (const tool of tools) {
     pi.registerTool({
       name: tool.name,
       label: tool.name,
       description: tool.description ?? "",
+      ...mcpPromptMetadata[tool.name],
       parameters: Type.Unsafe(tool.inputSchema),
 
       renderCall: renderCall(tool.name),
