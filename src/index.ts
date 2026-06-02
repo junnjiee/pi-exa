@@ -9,12 +9,39 @@ import { closeExaMcp, getExaMcp, getExaMcpTools } from "./exa_mcp";
 import { deepSearch, DeepSearchParams } from "./exa_deep_search";
 import { abortPromise, renderCall, renderTruncatedResult } from "./utils";
 import { getPiExaConfig, setPiExaConfig } from "./config";
+import { getTavily, resetTavily } from "./tavily";
 
 const EXA_PROVIDER = "exa";
+const TAVILY_PROVIDER = "tavily";
 
 export default async function (pi: ExtensionAPI) {
   const authStorage = AuthStorage.create();
   let mcpToolsLoaded = false;
+
+  async function getTavilyApiKey() {
+    const cred = authStorage.get(TAVILY_PROVIDER);
+    if (cred?.type === "api_key" && cred.key) {
+      return cred.key;
+    }
+    return process.env.TAVILY_API_KEY;
+  }
+
+  async function updateTavilyToolAvailability() {
+    const config = await getPiExaConfig();
+    const shouldEnable =
+      Boolean(await getTavilyApiKey()) && config.tavilyEnabled !== false;
+
+    if (shouldEnable) {
+      pi.setActiveTools([
+        ...new Set([...pi.getActiveTools(), "web_search_tavily"]),
+      ]);
+      return;
+    }
+
+    pi.setActiveTools(
+      pi.getActiveTools().filter((name) => name !== "web_search_tavily"),
+    );
+  }
 
   async function getExaApiKey(mcp = false) {
     if (mcp) {
@@ -84,6 +111,7 @@ export default async function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     await updateDeepSearchToolAvailability();
     await updateAdvancedSearchToolAvailability();
+    await updateTavilyToolAvailability();
     await updateDeepSearchStatus(ctx);
     if (!mcpToolsLoaded) {
       ctx.ui.notify(
@@ -308,6 +336,159 @@ export default async function (pi: ExtensionAPI) {
         "Disabled web_search_advanced_exa. The agent will stop seeing it on the next turn.",
         "info",
       );
+    },
+  });
+
+  pi.registerCommand("tavily-login", {
+    description: "Set your Tavily API key",
+    handler: async (_args, ctx) => {
+      if (!ctx.hasUI) {
+        ctx.ui.notify(
+          "Set the TAVILY_API_KEY env var or run tavily-login in the UI",
+          "info",
+        );
+        return;
+      }
+      const key = await ctx.ui.input(
+        "Tavily API Key",
+        "Enter your Tavily API key",
+      );
+      if (key) {
+        authStorage.set(TAVILY_PROVIDER, { type: "api_key", key });
+        resetTavily();
+        await updateTavilyToolAvailability();
+        ctx.ui.notify("Tavily API key saved.", "info");
+      }
+    },
+  });
+
+  pi.registerCommand("tavily-logout", {
+    description: "Remove your Tavily API key",
+    handler: async (_args, ctx) => {
+      authStorage.remove(TAVILY_PROVIDER);
+      resetTavily();
+      await updateTavilyToolAvailability();
+      ctx.ui.notify(
+        process.env.TAVILY_API_KEY
+          ? "Stored Tavily API key removed. TAVILY_API_KEY env var is still set and will be used."
+          : "Tavily API key removed.",
+        "info",
+      );
+    },
+  });
+
+  pi.registerCommand("tavily-search", {
+    description: "Enable/disable the Tavily web search tool",
+    handler: async (args, ctx) => {
+      const value = args.trim().toLowerCase();
+
+      if (!value) {
+        const hasApiKey = Boolean(await getTavilyApiKey());
+        const isEnabled = pi.getActiveTools().includes("web_search_tavily");
+        ctx.ui.notify(
+          hasApiKey
+            ? `Tavily web search is currently ${isEnabled ? "enabled" : "disabled"}. Use /tavily-search on|off to toggle.`
+            : "web_search_tavily requires a Tavily API key. Set TAVILY_API_KEY or run /tavily-login.",
+          hasApiKey ? "info" : "warning",
+        );
+        return;
+      }
+
+      if (value !== "on" && value !== "off") {
+        ctx.ui.notify("Usage: /tavily-search on|off", "info");
+        return;
+      }
+
+      const enabled = value === "on";
+      const hasApiKey = Boolean(await getTavilyApiKey());
+      await setPiExaConfig({ tavilyEnabled: enabled });
+      await updateTavilyToolAvailability();
+
+      if (enabled && !hasApiKey) {
+        ctx.ui.notify(
+          "web_search_tavily requires a Tavily API key. Set TAVILY_API_KEY or run /tavily-login.",
+          "warning",
+        );
+        return;
+      }
+
+      ctx.ui.notify(
+        `${enabled ? "Enabled" : "Disabled"} web_search_tavily. The agent will ${enabled ? "see" : "stop seeing"} it on the next turn.`,
+        "info",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "web_search_tavily",
+    label: "web_search_tavily",
+    description:
+      "Search the web using Tavily. Returns relevant web results with titles, URLs, and content snippets.",
+    promptSnippet: "Web search powered by Tavily",
+    promptGuidelines: [
+      "Use web_search_tavily for general web searches when you need current information from the internet.",
+    ],
+    parameters: Type.Object({
+      query: Type.String({ description: "The search query (max 400 chars)" }),
+      maxResults: Type.Optional(
+        Type.Number({
+          description: "Maximum number of results to return (1-20, default 5)",
+        }),
+      ),
+      searchDepth: Type.Optional(
+        Type.Union([Type.Literal("basic"), Type.Literal("advanced")], {
+          description:
+            'Search depth: "basic" (fast) or "advanced" (thorough, 2 credits)',
+        }),
+      ),
+      topic: Type.Optional(
+        Type.Union(
+          [
+            Type.Literal("general"),
+            Type.Literal("news"),
+            Type.Literal("finance"),
+          ],
+          { description: 'Search topic category (default "general")' },
+        ),
+      ),
+    }),
+
+    renderResult: renderTruncatedResult,
+
+    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
+      try {
+        const client = getTavily(await getTavilyApiKey());
+        const result = await Promise.race([
+          client.search(params.query, {
+            maxResults: params.maxResults ?? 5,
+            searchDepth: params.searchDepth ?? "basic",
+            topic: params.topic ?? "general",
+          }),
+          abortPromise(signal),
+        ]);
+
+        const text = JSON.stringify(result, null, 2);
+        return {
+          content: [{ type: "text" as const, text }],
+          details: {},
+        };
+      } catch (err) {
+        if (signal?.aborted) {
+          return {
+            content: [{ type: "text", text: "Request was cancelled" }],
+            details: {},
+          };
+        }
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+          details: { isError: true },
+        };
+      }
     },
   });
 

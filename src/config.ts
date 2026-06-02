@@ -8,6 +8,7 @@ export interface PiExaConfig {
   mcpUseApiKey?: boolean;
   deepSearchEnabled?: boolean;
   advancedSearchEnabled?: boolean;
+  tavilyEnabled?: boolean;
 }
 
 export async function getPiExaConfig(): Promise<PiExaConfig> {
