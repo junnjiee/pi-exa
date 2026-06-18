@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 const PI_EXA_CONFIG_FILE = join(getAgentDir(), "pi-exa.json");
 
 export interface PiExaConfig {
+  enabled?: boolean;
   mcpUseApiKey?: boolean;
   deepSearchEnabled?: boolean;
   advancedSearchEnabled?: boolean;

@@ -15,6 +15,7 @@ const EXA_PROVIDER = "exa";
 export default async function (pi: ExtensionAPI) {
   const authStorage = AuthStorage.create();
   let mcpToolsLoaded = false;
+  const registeredExaToolNames: string[] = [];
 
   async function getExaApiKey(mcp = false) {
     if (mcp) {
@@ -30,60 +31,66 @@ export default async function (pi: ExtensionAPI) {
     return process.env.EXA_API_KEY;
   }
 
-  async function updateDeepSearchToolAvailability() {
+  async function syncToolAvailability() {
     const config = await getPiExaConfig();
-    const shouldEnable =
-      Boolean(await getExaApiKey()) && config.deepSearchEnabled !== false;
+    const enabled = config.enabled !== false;
 
-    if (shouldEnable) {
-      pi.setActiveTools([
-        ...new Set([...pi.getActiveTools(), "deep_search_exa"]),
-      ]);
+    if (!enabled) {
+      pi.setActiveTools(
+        pi.getActiveTools().filter((name) => !registeredExaToolNames.includes(name)),
+      );
       return;
     }
 
-    pi.setActiveTools(
-      pi.getActiveTools().filter((name) => name !== "deep_search_exa"),
-    );
-  }
+    const hasApiKey = Boolean(await getExaApiKey());
 
-  function deepSearchEnabled() {
-    return pi.getActiveTools().includes("deep_search_exa");
+    const activeTools = pi.getActiveTools();
+    const next = new Set(activeTools);
+
+    if (hasApiKey && config.deepSearchEnabled !== false && registeredExaToolNames.includes("deep_search_exa")) {
+      next.add("deep_search_exa");
+    } else {
+      next.delete("deep_search_exa");
+    }
+
+    if (config.advancedSearchEnabled === true && registeredExaToolNames.includes("web_search_advanced_exa")) {
+      next.add("web_search_advanced_exa");
+    } else {
+      next.delete("web_search_advanced_exa");
+    }
+
+    for (const name of ["web_search_exa", "web_fetch_exa"]) {
+      if (registeredExaToolNames.includes(name)) {
+        next.add(name);
+      } else {
+        next.delete(name);
+      }
+    }
+
+    pi.setActiveTools([...next]);
   }
 
   async function updateDeepSearchStatus(ctx: { ui: ExtensionUIContext }) {
+    const activeTools = pi.getActiveTools();
+    const deepSearchActive = activeTools.includes("deep_search_exa");
+    const config = await getPiExaConfig();
+    const enabled = config.enabled !== false;
+
+    if (!enabled) {
+      ctx.ui.setStatus("pi-exa", ctx.ui.theme.fg("warning", "pi-exa: disabled"));
+      return;
+    }
+
     ctx.ui.setStatus(
       "pi-exa",
-      deepSearchEnabled()
+      deepSearchActive
         ? ctx.ui.theme.fg("muted", "exa deep search: on")
         : undefined,
     );
   }
 
-  async function updateAdvancedSearchToolAvailability() {
-    const config = await getPiExaConfig();
-
-    if (config.advancedSearchEnabled === true) {
-      const advancedTool = pi
-        .getAllTools()
-        .find((tool) => tool.name === "web_search_advanced_exa");
-
-      if (advancedTool) {
-        pi.setActiveTools([
-          ...new Set([...pi.getActiveTools(), "web_search_advanced_exa"]),
-        ]);
-      }
-      return;
-    }
-
-    pi.setActiveTools(
-      pi.getActiveTools().filter((name) => name !== "web_search_advanced_exa"),
-    );
-  }
-
   pi.on("session_start", async (_event, ctx) => {
-    await updateDeepSearchToolAvailability();
-    await updateAdvancedSearchToolAvailability();
+    await syncToolAvailability();
     await updateDeepSearchStatus(ctx);
     if (!mcpToolsLoaded) {
       ctx.ui.notify(
@@ -91,6 +98,44 @@ export default async function (pi: ExtensionAPI) {
         "warning",
       );
     }
+  });
+
+  pi.registerCommand("exa-enable", {
+    description: "Enable the pi-exa extension and its tools",
+    handler: async (_args, ctx) => {
+      const config = await getPiExaConfig();
+      if (config.enabled !== false) {
+        ctx.ui.notify("pi-exa is already enabled.", "info");
+        return;
+      }
+
+      await setPiExaConfig({ enabled: true });
+      await syncToolAvailability();
+      await updateDeepSearchStatus(ctx);
+      ctx.ui.notify(
+        "pi-exa enabled. The agent will see Exa tools on the next turn.",
+        "info",
+      );
+    },
+  });
+
+  pi.registerCommand("exa-disable", {
+    description: "Disable the pi-exa extension and hide all its tools",
+    handler: async (_args, ctx) => {
+      const config = await getPiExaConfig();
+      if (config.enabled === false) {
+        ctx.ui.notify("pi-exa is already disabled.", "info");
+        return;
+      }
+
+      await setPiExaConfig({ enabled: false });
+      await syncToolAvailability();
+      await updateDeepSearchStatus(ctx);
+      ctx.ui.notify(
+        "pi-exa disabled. All Exa tools are hidden from the agent.",
+        "info",
+      );
+    },
   });
 
   pi.registerCommand("exa-login", {
@@ -108,7 +153,7 @@ export default async function (pi: ExtensionAPI) {
         authStorage.set(EXA_PROVIDER, { type: "api_key", key });
         resetExa();
         await closeExaMcp();
-        await updateDeepSearchToolAvailability();
+        await syncToolAvailability();
         await updateDeepSearchStatus(ctx);
         ctx.ui.notify("Exa API key saved.", "info");
       }
@@ -121,7 +166,7 @@ export default async function (pi: ExtensionAPI) {
       authStorage.remove(EXA_PROVIDER);
       resetExa();
       await closeExaMcp();
-      await updateDeepSearchToolAvailability();
+      await syncToolAvailability();
       await updateDeepSearchStatus(ctx);
       ctx.ui.notify(
         process.env.EXA_API_KEY
@@ -141,6 +186,7 @@ export default async function (pi: ExtensionAPI) {
       const hasEnvKey = Boolean(process.env.EXA_API_KEY);
 
       const config = await getPiExaConfig();
+      const enabled = config.enabled !== false;
 
       const activeTools = pi.getActiveTools();
       const advancedSearchEnabled = activeTools.includes(
@@ -164,6 +210,8 @@ export default async function (pi: ExtensionAPI) {
       const lines = [
         "pi-exa status:",
         "",
+        `Extension: ${enabled ? "enabled" : "disabled"}`,
+        "",
         "API Key Management",
         `- Stored API key: ${hasStoredKey ? "found" : "not found"}`,
         `- EXA_API_KEY env var: ${hasEnvKey ? "found" : "not found"}`,
@@ -184,6 +232,15 @@ export default async function (pi: ExtensionAPI) {
   pi.registerCommand("exa-deep-search", {
     description: "Enable/disable the Exa deep search tool",
     handler: async (args, ctx) => {
+      const config = await getPiExaConfig();
+      if (config.enabled === false) {
+        ctx.ui.notify(
+          "pi-exa is disabled. Run /exa-enable first.",
+          "warning",
+        );
+        return;
+      }
+
       const value = args.trim().toLowerCase();
 
       if (!value) {
@@ -206,7 +263,7 @@ export default async function (pi: ExtensionAPI) {
       const enabled = value === "on";
       const hasApiKey = Boolean(await getExaApiKey());
       await setPiExaConfig({ deepSearchEnabled: enabled });
-      await updateDeepSearchToolAvailability();
+      await syncToolAvailability();
 
       if (enabled && !hasApiKey) {
         ctx.ui.notify(
@@ -257,6 +314,15 @@ export default async function (pi: ExtensionAPI) {
   pi.registerCommand("exa-advanced-search", {
     description: "Enable/disable the advanced Exa web search tool",
     handler: async (args, ctx) => {
+      const config = await getPiExaConfig();
+      if (config.enabled === false) {
+        ctx.ui.notify(
+          "pi-exa is disabled. Run /exa-enable first.",
+          "warning",
+        );
+        return;
+      }
+
       const value = args.trim().toLowerCase();
       const activeTools = pi.getActiveTools();
       const isEnabled = activeTools.includes("web_search_advanced_exa");
@@ -290,9 +356,7 @@ export default async function (pi: ExtensionAPI) {
           return;
         }
 
-        pi.setActiveTools([
-          ...new Set([...activeTools, "web_search_advanced_exa"]),
-        ]);
+        await syncToolAvailability();
         ctx.ui.notify(
           "Enabled web_search_advanced_exa. The agent will see it on the next turn.",
           "info",
@@ -301,9 +365,7 @@ export default async function (pi: ExtensionAPI) {
       }
 
       await setPiExaConfig({ advancedSearchEnabled: false });
-      pi.setActiveTools(
-        activeTools.filter((name) => name !== "web_search_advanced_exa"),
-      );
+      await syncToolAvailability();
       ctx.ui.notify(
         "Disabled web_search_advanced_exa. The agent will stop seeing it on the next turn.",
         "info",
@@ -357,6 +419,7 @@ export default async function (pi: ExtensionAPI) {
       }
     },
   });
+  registeredExaToolNames.push("deep_search_exa");
 
   // load Exa MCP tools
   const tools = await getExaMcpTools(await getExaApiKey(true));
@@ -383,6 +446,8 @@ export default async function (pi: ExtensionAPI) {
   };
 
   for (const tool of tools) {
+    registeredExaToolNames.push(tool.name);
+
     pi.registerTool({
       name: tool.name,
       label: tool.name,
