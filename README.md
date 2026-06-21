@@ -52,6 +52,8 @@ pi /exa-login
 
 | command                        | description                                                                                                                        |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `/exa-enable`                  | Enables the pi-exa extension and restores its available tools                                                                       |
+| `/exa-disable`                 | Disables the pi-exa extension and hides all Exa tools from the agent                                                                |
 | `/exa-login`                   | Writes your Exa API key to `.pi/agents/auth.json`                                                                                  |
 | `/exa-logout`                  | Removes your API key from `.pi/agents/auth.json`                                                                                   |
 | `/exa-status`                  | Shows the Pi Exa extension status                                                                                                  |
@@ -61,14 +63,14 @@ pi /exa-login
 
 ### Tools
 
-Always enabled:
+Enabled while pi-exa is enabled:
 
 | name             | interface                                             | description                       |
 | ---------------- | ----------------------------------------------------- | --------------------------------- |
 | `web_search_exa` | [Exa MCP](https://github.com/exa-labs/exa-mcp-server) | General web search                |
 | `web_fetch_exa`  | [Exa MCP](https://github.com/exa-labs/exa-mcp-server) | Get content of a specific webpage |
 
-Toggle to enable/disable. Preferences persist across sessions:
+Toggle to enable/disable while pi-exa is enabled. Preferences persist across sessions:
 
 | name                      | interface                                                 | description                                                                                                                              |
 | ------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
