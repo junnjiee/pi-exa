@@ -1,8 +1,8 @@
+import * as piAgent from "@earendil-works/pi-coding-agent";
 import {
   type ExtensionAPI,
   type ExtensionUIContext,
   getAgentDir,
-  readStoredCredential,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -16,8 +16,20 @@ import { getPiExaConfig, setPiExaConfig } from "./config";
 const EXA_PROVIDER = "exa";
 const AUTH_PATH = join(getAgentDir(), "auth.json");
 
+type StoredCredential = {
+  type: string;
+  key?: string;
+};
+
+const piAgentRuntime = piAgent as unknown as {
+  readStoredCredential?: (
+    provider: string,
+    authPath?: string,
+  ) => StoredCredential | undefined;
+};
+
 function readExaCredential() {
-  return readStoredCredential(EXA_PROVIDER, AUTH_PATH);
+  return piAgentRuntime.readStoredCredential?.(EXA_PROVIDER, AUTH_PATH);
 }
 
 function writeExaCredential(key: string) {
@@ -40,6 +52,13 @@ function removeExaCredential() {
 }
 
 export default async function (pi: ExtensionAPI) {
+  if (!piAgentRuntime.readStoredCredential) {
+    pi.on("session_start", async (_event, ctx) => {
+      ctx.ui.notify("pi-exa requires pi 0.80.8 or newer.", "error");
+    });
+    return;
+  }
+
   let mcpToolsLoaded = false;
   const registeredExaToolNames: string[] = [];
 
@@ -63,7 +82,9 @@ export default async function (pi: ExtensionAPI) {
 
     if (!enabled) {
       pi.setActiveTools(
-        pi.getActiveTools().filter((name) => !registeredExaToolNames.includes(name)),
+        pi
+          .getActiveTools()
+          .filter((name) => !registeredExaToolNames.includes(name)),
       );
       return;
     }
@@ -73,13 +94,20 @@ export default async function (pi: ExtensionAPI) {
     const activeTools = pi.getActiveTools();
     const next = new Set(activeTools);
 
-    if (hasApiKey && config.deepSearchEnabled !== false && registeredExaToolNames.includes("deep_search_exa")) {
+    if (
+      hasApiKey &&
+      config.deepSearchEnabled !== false &&
+      registeredExaToolNames.includes("deep_search_exa")
+    ) {
       next.add("deep_search_exa");
     } else {
       next.delete("deep_search_exa");
     }
 
-    if (config.advancedSearchEnabled === true && registeredExaToolNames.includes("web_search_advanced_exa")) {
+    if (
+      config.advancedSearchEnabled === true &&
+      registeredExaToolNames.includes("web_search_advanced_exa")
+    ) {
       next.add("web_search_advanced_exa");
     } else {
       next.delete("web_search_advanced_exa");
@@ -103,7 +131,10 @@ export default async function (pi: ExtensionAPI) {
     const enabled = config.enabled !== false;
 
     if (!enabled) {
-      ctx.ui.setStatus("pi-exa", ctx.ui.theme.fg("warning", "pi-exa: disabled"));
+      ctx.ui.setStatus(
+        "pi-exa",
+        ctx.ui.theme.fg("warning", "pi-exa: disabled"),
+      );
       return;
     }
 
@@ -260,10 +291,7 @@ export default async function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const config = await getPiExaConfig();
       if (config.enabled === false) {
-        ctx.ui.notify(
-          "pi-exa is disabled. Run /exa-enable first.",
-          "warning",
-        );
+        ctx.ui.notify("pi-exa is disabled. Run /exa-enable first.", "warning");
         return;
       }
 
@@ -342,10 +370,7 @@ export default async function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const config = await getPiExaConfig();
       if (config.enabled === false) {
-        ctx.ui.notify(
-          "pi-exa is disabled. Run /exa-enable first.",
-          "warning",
-        );
+        ctx.ui.notify("pi-exa is disabled. Run /exa-enable first.", "warning");
         return;
       }
 
