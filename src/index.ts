@@ -1,9 +1,12 @@
+import * as piAgent from "@earendil-works/pi-coding-agent";
 import {
-  AuthStorage,
   type ExtensionAPI,
   type ExtensionUIContext,
+  getAgentDir,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { getExa, resetExa } from "./exa";
 import { closeExaMcp, getExaMcp, getExaMcpTools } from "./exa_mcp";
 import { deepSearch, DeepSearchParams } from "./exa_deep_search";
@@ -11,9 +14,51 @@ import { abortPromise, renderCall, renderTruncatedResult } from "./utils";
 import { getPiExaConfig, setPiExaConfig } from "./config";
 
 const EXA_PROVIDER = "exa";
+const AUTH_PATH = join(getAgentDir(), "auth.json");
+
+type StoredCredential = {
+  type: string;
+  key?: string;
+};
+
+const piAgentRuntime = piAgent as unknown as {
+  readStoredCredential?: (
+    provider: string,
+    authPath?: string,
+  ) => StoredCredential | undefined;
+};
+
+function readExaCredential() {
+  return piAgentRuntime.readStoredCredential?.(EXA_PROVIDER, AUTH_PATH);
+}
+
+function writeExaCredential(key: string) {
+  const data = existsSync(AUTH_PATH)
+    ? JSON.parse(readFileSync(AUTH_PATH, "utf-8"))
+    : {};
+  data[EXA_PROVIDER] = { type: "api_key" as const, key };
+  writeFileSync(AUTH_PATH, `${JSON.stringify(data, null, 2)}\n`, {
+    mode: 0o600,
+  });
+}
+
+function removeExaCredential() {
+  if (!existsSync(AUTH_PATH)) return;
+  const data = JSON.parse(readFileSync(AUTH_PATH, "utf-8"));
+  delete data[EXA_PROVIDER];
+  writeFileSync(AUTH_PATH, `${JSON.stringify(data, null, 2)}\n`, {
+    mode: 0o600,
+  });
+}
 
 export default async function (pi: ExtensionAPI) {
-  const authStorage = AuthStorage.create();
+  if (!piAgentRuntime.readStoredCredential) {
+    pi.on("session_start", async (_event, ctx) => {
+      ctx.ui.notify("pi-exa requires pi 0.80.8 or newer.", "error");
+    });
+    return;
+  }
+
   let mcpToolsLoaded = false;
   const registeredExaToolNames: string[] = [];
 
@@ -24,7 +69,7 @@ export default async function (pi: ExtensionAPI) {
         return;
       }
     }
-    const cred = authStorage.get(EXA_PROVIDER);
+    const cred = readExaCredential();
     if (cred?.type === "api_key" && cred.key) {
       return cred.key;
     }
@@ -37,7 +82,9 @@ export default async function (pi: ExtensionAPI) {
 
     if (!enabled) {
       pi.setActiveTools(
-        pi.getActiveTools().filter((name) => !registeredExaToolNames.includes(name)),
+        pi
+          .getActiveTools()
+          .filter((name) => !registeredExaToolNames.includes(name)),
       );
       return;
     }
@@ -47,13 +94,20 @@ export default async function (pi: ExtensionAPI) {
     const activeTools = pi.getActiveTools();
     const next = new Set(activeTools);
 
-    if (hasApiKey && config.deepSearchEnabled !== false && registeredExaToolNames.includes("deep_search_exa")) {
+    if (
+      hasApiKey &&
+      config.deepSearchEnabled !== false &&
+      registeredExaToolNames.includes("deep_search_exa")
+    ) {
       next.add("deep_search_exa");
     } else {
       next.delete("deep_search_exa");
     }
 
-    if (config.advancedSearchEnabled === true && registeredExaToolNames.includes("web_search_advanced_exa")) {
+    if (
+      config.advancedSearchEnabled === true &&
+      registeredExaToolNames.includes("web_search_advanced_exa")
+    ) {
       next.add("web_search_advanced_exa");
     } else {
       next.delete("web_search_advanced_exa");
@@ -77,7 +131,10 @@ export default async function (pi: ExtensionAPI) {
     const enabled = config.enabled !== false;
 
     if (!enabled) {
-      ctx.ui.setStatus("pi-exa", ctx.ui.theme.fg("warning", "pi-exa: disabled"));
+      ctx.ui.setStatus(
+        "pi-exa",
+        ctx.ui.theme.fg("warning", "pi-exa: disabled"),
+      );
       return;
     }
 
@@ -150,7 +207,7 @@ export default async function (pi: ExtensionAPI) {
       }
       const key = await ctx.ui.input("Exa API Key", "Enter your Exa API key");
       if (key) {
-        authStorage.set(EXA_PROVIDER, { type: "api_key", key });
+        writeExaCredential(key);
         resetExa();
         await closeExaMcp();
         await syncToolAvailability();
@@ -163,7 +220,7 @@ export default async function (pi: ExtensionAPI) {
   pi.registerCommand("exa-logout", {
     description: "Remove your Exa API key",
     handler: async (_args, ctx) => {
-      authStorage.remove(EXA_PROVIDER);
+      removeExaCredential();
       resetExa();
       await closeExaMcp();
       await syncToolAvailability();
@@ -180,7 +237,7 @@ export default async function (pi: ExtensionAPI) {
   pi.registerCommand("exa-status", {
     description: "Show Exa extension status",
     handler: async (_args, ctx) => {
-      const storedCred = authStorage.get(EXA_PROVIDER);
+      const storedCred = readExaCredential();
       const hasStoredKey =
         storedCred?.type === "api_key" && Boolean(storedCred.key);
       const hasEnvKey = Boolean(process.env.EXA_API_KEY);
@@ -234,10 +291,7 @@ export default async function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const config = await getPiExaConfig();
       if (config.enabled === false) {
-        ctx.ui.notify(
-          "pi-exa is disabled. Run /exa-enable first.",
-          "warning",
-        );
+        ctx.ui.notify("pi-exa is disabled. Run /exa-enable first.", "warning");
         return;
       }
 
@@ -316,10 +370,7 @@ export default async function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const config = await getPiExaConfig();
       if (config.enabled === false) {
-        ctx.ui.notify(
-          "pi-exa is disabled. Run /exa-enable first.",
-          "warning",
-        );
+        ctx.ui.notify("pi-exa is disabled. Run /exa-enable first.", "warning");
         return;
       }
 
